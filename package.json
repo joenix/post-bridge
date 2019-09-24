@@ -1,0 +1,11 @@
+{
+  "name": "post-bridge",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "http-server -p 10000"
+  },
+  "author": "joenix",
+  "license": "MIT"
+}

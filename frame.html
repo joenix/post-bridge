@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Post Bridge Version 1 --- iframe</title>
+  </head>
+  <body>
+    <h1>Frame Page</h1>
+    <script src="./minify.js"></script>
+    <script type="text/javascript">
+      var bridge = new postBridge();
+
+      bridge.receive("sendMessageInPage", data => {
+        console.log("在子端接收信息:", data);
+      });
+
+      bridge.send("sendMessageInFrame", { key: "发送数据给父端" });
+    </script>
+  </body>
+</html>
