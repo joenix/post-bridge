@@ -44,6 +44,7 @@ class postBridge {
       e => {
         // Filter Event
         e = this.filter(e);
+
         // Really
         if (e) {
           const handler = this.proxy[e.data.proxy];
@@ -51,16 +52,17 @@ class postBridge {
           handler && handler(e.data);
         }
       },
+
       false
     );
+
+    // Handler of Onload
+    this.onloader = () => {};
   }
 
   // Filter
   filter(e) {
-    return /^setImmediate/.test(e.data) ||
-      ["patterns", "js"].includes(e.data.id)
-      ? false
-      : e;
+    return /^setImmediate/.test(e.data) || ["patterns", "js"].includes(e.data.id) ? false : e;
   }
 
   // Receive Message
@@ -73,15 +75,29 @@ class postBridge {
     // Set Proxy
     data.proxy = name;
 
+    // Check Frame
     if (this.frame) {
       // Scope
       const that = this;
 
+      // Has Load
+      if (this.frame.isLoad) {
+        // Bubble
+        this.frame.contentWindow.postMessage(data, "*");
+
+        // Stop
+        return;
+      }
+
       // Frame Loaded
-      this.frame.onload = function() {
+      this.frame.addEventListener("load", () => {
+        // Set is Load
+        that.frame.isLoad = true;
         // Cross Data
         that.frame.contentWindow.postMessage(data, "*");
-      };
+        // Trigger Handler
+        that.onloader();
+      });
 
       // Stop
       return;
@@ -89,6 +105,11 @@ class postBridge {
 
     // Bubble
     this.bridge.top.postMessage(data, "*");
+  }
+
+  // Survey
+  survey(callback) {
+    this.onloader = callback;
   }
 }
 
