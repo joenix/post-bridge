@@ -11,6 +11,18 @@ function monitor(callback, check = !!typeof window) {
   return check;
 }
 
+function inside() {
+  return window.self !== window.top;
+}
+
+function purify(target) {
+  return inside() ? target.top : target.contentWindow;
+}
+
+function vexing(target, callback) {
+  return inside() ? callback() : target.addEventListener('load', callback);
+}
+
 class postBridge {
   /**
    * @mode {post or receive}
@@ -38,10 +50,10 @@ class postBridge {
     // Event Listener
     this.bridge.addEventListener(
       // Name
-      "message",
+      'message',
 
       // Handler
-      e => {
+      (e) => {
         // Filter Event
         e = this.filter(e);
 
@@ -56,13 +68,16 @@ class postBridge {
       false
     );
 
+    // Set Active
+    vexing(this.frame, () => (this.active = true));
+
     // Handler of Onload
     this.onloader = () => {};
   }
 
   // Filter
   filter(e) {
-    return /^setImmediate/.test(e.data) || ["patterns", "js"].includes(e.data.id) ? false : e;
+    return /^setImmediate/.test(e.data) || ['patterns', 'js'].includes(e.data.id) ? false : e;
   }
 
   // Receive Message
@@ -81,30 +96,20 @@ class postBridge {
       const that = this;
 
       // Has Load
-      if (this.frame.isLoad) {
-        // Bubble
-        this.frame.contentWindow.postMessage(data, "*");
+      if (this.active) {
+        // Purify Bubble
+        purify(this.frame).postMessage(data, '*');
 
-        // Stop
-        return;
+        // Stop as Handler
+        return that.onloader();
       }
-
-      // Frame Loaded
-      this.frame.addEventListener("load", () => {
-        // Set is Load
-        that.frame.isLoad = true;
-        // Cross Data
-        that.frame.contentWindow.postMessage(data, "*");
-        // Trigger Handler
-        that.onloader();
-      });
 
       // Stop
       return;
     }
 
     // Bubble
-    this.bridge.top.postMessage(data, "*");
+    this.bridge.top.postMessage(data, '*');
   }
 
   // Survey

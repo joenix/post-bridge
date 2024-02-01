@@ -18,7 +18,7 @@ npm i post-bridge
 
 ```js
 // Import Package
-import postBridge from "post-bridge";
+import postBridge from 'post-bridge';
 
 // Get Frame Node
 const frame = document.querySelector(`#frame`);
@@ -27,20 +27,20 @@ const frame = document.querySelector(`#frame`);
 const bridge = new postBridge(frame);
 
 // Send Message to Frame
-bridge.send("sendMessageInPage", { key: "value" });
+bridge.send('fromPageToFrame', { key: 'value' });
 ```
 
 > in Frame
 
 ```js
 // Import Package
-import postBridge from "post-bridge";
+import postBridge from 'post-bridge';
 
 // New Bridge
-const bridge = new postBridge(frame);
+const bridge = new postBridge(window);
 
 // Receive Message From Page
-bridge.receive("sendMessageInPage", data => {
+bridge.receive('fromPageToFrame', (data) => {
   console.log(data);
 });
 ```
@@ -51,26 +51,29 @@ bridge.receive("sendMessageInPage", data => {
 
 ```js
 // Import Package
-import postBridge from "post-bridge";
+import postBridge from 'post-bridge';
 
 // New Bridge
-const bridge = new postBridge();
+const bridge = new postBridge(window);
 
 // Send Message to Frame
-bridge.send("sendMessageInFrame", { key: "value" });
+bridge.send('fromFrameToPage', { key: 'value' });
 ```
 
 > in Page
 
 ```js
 // Import Package
-import postBridge from "post-bridge";
+import postBridge from 'post-bridge';
+
+// Get Frame Node
+const frame = document.querySelector(`#frame`);
 
 // New Bridge
 const bridge = new postBridge(frame);
 
 // Receive Message From Page
-bridge.receive("sendMessageInFrame", data => {
+bridge.receive('fromFrameToPage', (data) => {
   console.log(data);
 });
 ```
