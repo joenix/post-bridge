@@ -1,6 +1,6 @@
 # post-bridge
 
-> a sample post message for cross sandbox.
+> A sample package for easily to post message between Pages and iFrames
 
 ## get started
 
@@ -14,32 +14,32 @@ npm i post-bridge
 
 ### 1. Send Message -- From Page to Frame
 
-> in Page
+> `in Page`
 
 ```js
-// Import Package
+// use post-bridge
 import postBridge from 'post-bridge';
 
-// Get Frame Node
+// get frame node
 const frame = document.querySelector(`#frame`);
 
-// New Bridge
+// create bridge instance
 const bridge = new postBridge(frame);
 
-// Send Message to Frame
+// send message to iframe
 bridge.send('fromPageToFrame', { key: 'value' });
 ```
 
-> in Frame
+> `in Frame`
 
 ```js
-// Import Package
+// use post-bridge
 import postBridge from 'post-bridge';
 
-// New Bridge
+// create bridge instance
 const bridge = new postBridge(window);
 
-// Receive Message From Page
+// receive message from page
 bridge.receive('fromPageToFrame', (data) => {
   console.log(data);
 });
@@ -47,32 +47,32 @@ bridge.receive('fromPageToFrame', (data) => {
 
 ### 2. Send Message -- From Frame to Page
 
-> in Frame
+> `in Frame`
 
 ```js
-// Import Package
+// use post-bridge
 import postBridge from 'post-bridge';
 
-// New Bridge
+// create bridge instance
 const bridge = new postBridge(window);
 
-// Send Message to Frame
+// send message to page
 bridge.send('fromFrameToPage', { key: 'value' });
 ```
 
-> in Page
+> `in Page`
 
 ```js
-// Import Package
+// use post-bridge
 import postBridge from 'post-bridge';
 
-// Get Frame Node
+// get frame node
 const frame = document.querySelector(`#frame`);
 
-// New Bridge
+// create bridge instance
 const bridge = new postBridge(frame);
 
-// Receive Message From Page
+// receive message from iframe
 bridge.receive('fromFrameToPage', (data) => {
   console.log(data);
 });
