@@ -1,121 +1,216 @@
-function monitor(callback, check = !!typeof window) {
-  if (!callback) {
-    return check;
+// Use Flatted
+import { parse, stringify } from 'flatted';
+
+// In VSCode
+const inVSCode = !!process.env.VSCODE_PID;
+
+// No Window
+if (typeof window === 'undefined') {
+  globalThis.window = {};
+}
+
+/**
+ * @name define
+ * ======== ======== ========
+ */
+function define(target) {
+  return target || window;
+}
+
+/**
+ * @name encode
+ * ======== ======== ========
+ */
+function encode(value) {
+  return this.deep ? stringify(value) : JSON.stringify(value);
+}
+
+/**
+ * @name decode
+ * ======== ======== ========
+ */
+function decode(value) {
+  try {
+    return this.deep ? parse(value) : JSON.parse(value);
+  } catch (e) {
+    return value;
   }
-  if (callback.constructor === Boolean) {
-    return check && window;
+}
+
+/**
+ * @name trigger
+ * ======== ======== ========
+ */
+async function trigger({ answer, [this.alias]: space, data, origin, source } = {}) {
+  // Without DevTools
+  if (this.blacks.includes(source)) return;
+
+  // Parse Data
+  data = decode.call(this, data);
+
+  // Answer Message
+  if (answer && this.handlers.onAnswer) {
+    // Cleat Time and Anwser
+    this.timer.clear(), await this.handlers.onAnswer({ origin, target: space, timeout: false });
   }
-  if (callback.constructor === Function) {
-    return callback(check);
+
+  // Trigger Action
+  if (this.actions && this.actions[space]) {
+    await this.actions[space](data, origin);
   }
-  return check;
 }
 
-function inside() {
-  return window.self !== window.top;
+/**
+ * @name bind
+ * ======== ======== ========
+ */
+function bind() {
+  if (inVSCode) {
+    this.origin.onDidReceiveMessage(async (data) => await trigger.call(this, data));
+  } else {
+    this.origin.addEventListener('message', async (event) => await trigger.call(this, event.data));
+  }
+
+  // [onConnect]
+  if (this.handlers.onConnect) this.handlers.onConnect(this);
 }
 
-function purify(target) {
-  return inside() ? target.top : target.contentWindow;
+/**
+ * @name setup
+ * ======== ======== ========
+ * @param { json } configure
+ *  @prop { string } namespace
+ *  @prop { object } origin
+ *  @prop { object } target
+ *  @prop { boolean } deep
+ *  @prop { string } alias
+ * @param { json } handlers
+ *  @method onConnect
+ *  @method onAnswer
+ *  @method onSend
+ * @param { ms } timeout
+ * @param { array } blacks
+ * ======== ======== ========
+ */
+function setup({ namespace, origin, target, deep = true, alias = `space` }, handlers = {}, timeout = 15, blacks = []) {
+  // Check Namespace for Receive
+  if (!namespace) return console.error(`Please check namespace ...`);
+
+  // Set Namespace
+  this.namespace = namespace;
+
+  // Set Origin
+  this.origin = define(origin);
+
+  // Set Target
+  this.target = define(target);
+
+  // Set Deep
+  this.deep = deep;
+
+  // Set Alias
+  this.alias = alias;
+
+  // Black List
+  this.blacks = ['react-devtools-content-script', ...blacks];
+
+  // Handlers on Lifecycle
+  this.handlers = handlers;
+
+  // Actions for Cache Actions
+  this.actions = {};
+
+  // Timeout No Response
+  this.timeout = timeout;
+
+  // Timer
+  this.timer = new Timer();
 }
 
-function vexing(target, callback) {
-  return inside() ? callback() : target.addEventListener('load', callback);
+/**
+ * Timer
+ * ======== ======== ========
+ */
+class Timer {
+  constructor(delay = 150, callback = () => {}) {
+    this.out = null;
+    this.delay = delay;
+    this.callback = callback;
+  }
+
+  start(delay) {
+    return new Promise((resolve) => {
+      this.out = setTimeout(() => (this.callback(this), resolve(true), this.clear()), delay || this.delay);
+    });
+  }
+
+  clear() {
+    clearTimeout(this.out), (this.out = null);
+  }
 }
 
-class postBridge {
+/**
+ * @name `post-bridge`
+ * @version 2.0
+ * @author joenix
+ * ======== ======== ========
+ */
+export default class Bridge {
   /**
-   * @mode {post or receive}
-   * @name {string}
+   * @name constructor
+   * ======== ======== ========
+   * @param { json } configure
+   *  @prop { string } namespace
+   *  @prop { object } origin
+   *  @prop { object } target
+   *  @prop { boolean } deep
+   *  @prop { string } alias
+   * @param { json } handlers
+   *  @method onConnect
+   *  @method onAnswer
+   *  @method onSend
    * ======== ======== ========
    */
-  constructor(frame) {
-    // Environ Check
-    this.bridge = monitor(true);
+  constructor(configure, handlers) {
+    return setup.call(this, configure, handlers), bind.call(this), this;
+  }
 
-    // No Env
-    if (!this.bridge) {
-      return console.error(`Please run postBridge in Browser`);
+  /**
+   * @name on
+   * ======== ======== ========
+   *  @param { string } space
+   *  @param { function } action
+   * ======== ======== ========
+   */
+  on(space, action) {
+    this.actions[space] = action;
+  }
+
+  /**
+   * @name send - promise
+   * ======== ======== ========
+   *  @param { string } space
+   *  @param { any } data
+   * ======== ======== ========
+   */
+  async send(space, data, answer = true) {
+    // Get Result with onSend
+    if (this.handlers.onSend) {
+      data = await this.handlers.onSend(data);
     }
 
-    // Frame Context
-    this.frame = frame;
+    // Encode Data
+    data = encode.call(this, data);
 
-    // Proxy
-    this.proxy = {};
+    // Send Message
+    this.target.postMessage({ [this.alias]: space, data, origin: this.namespace, answer }, '*');
 
-    // Active
-    this.active = undefined;
+    // Time Wait - 5 Seconds
+    const wait = await this.timer.start(5000);
 
-    // Event Listener
-    this.bridge.addEventListener(
-      // Name
-      'message',
-
-      // Handler
-      (e) => {
-        // Filter Event
-        e = this.filter(e);
-
-        // Really
-        if (e) {
-          const handler = this.proxy[e.data.proxy];
-          delete e.data.proxy;
-          handler && handler(e.data);
-        }
-      },
-
-      false
-    );
-
-    // Set Active
-    vexing(this.frame, () => (this.active = true));
-
-    // Handler of Onload
-    this.onloader = () => {};
-  }
-
-  // Filter
-  filter(e) {
-    return /^setImmediate/.test(e.data) || ['patterns', 'js'].includes(e.data.id) ? false : e;
-  }
-
-  // Receive Message
-  receive(name, callback) {
-    this.proxy[name] = callback;
-  }
-
-  // Send Message
-  send(name, data) {
-    // Set Proxy
-    data.proxy = name;
-
-    // Check Frame
-    if (this.frame) {
-      // Scope
-      const that = this;
-
-      // Has Load
-      if (this.active) {
-        // Purify Bubble
-        purify(this.frame).postMessage(data, '*');
-
-        // Stop as Handler
-        return that.onloader();
-      }
-
-      // Stop
-      return;
+    // Timeout
+    if (wait && this.handlers.onAnswer) {
+      await this.handlers.onAnswer({ origin: this.namespace, target: space, timeout: true });
     }
-
-    // Bubble
-    this.bridge.top.postMessage(data, '*');
-  }
-
-  // Survey
-  survey(callback) {
-    this.onloader = callback;
   }
 }
-
-export default monitor(() => ((window.postBridge = postBridge), postBridge));

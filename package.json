@@ -1,11 +1,12 @@
 {
   "name": "post-bridge",
-  "version": "1.2.14",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "http-server -p 10000"
-  },
+  "version": "2.0.16",
+  "description": "Easy to use Post Message",
   "author": "joenix",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "flatted": "^3.3.1"
+  }
 }
